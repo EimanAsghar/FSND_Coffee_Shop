@@ -29,7 +29,7 @@ db_drop_and_create_all()
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks', methods=['GET'])
-def drinks(): 
+def get_drinks(): 
 
     all_drinks =  [drinks.short() for drinks in Drink.query.all()]
     
@@ -52,7 +52,7 @@ def drinks():
 
 @app.route('/drinks-detail', methods=['GET'])
 @requires_auth('get:drinks-detail')
-def drinks_details(payload):  
+def get_drinks_details(payload):  
 
     drinks_details =  [drinks.long() for drinks in Drink.query.all()]
 
@@ -75,7 +75,7 @@ def drinks_details(payload):
 '''
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
-def create_drinks(payload):
+def create_drink(payload):
 
     new_drink = Drink(
         title=request.get_json().get('title'),
@@ -106,7 +106,7 @@ def create_drinks(payload):
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def edit_drink(jwt, drink_id):
+def edit_drink(payload, drink_id):
  
         drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
         body = request.get_json()
@@ -121,12 +121,8 @@ def edit_drink(jwt, drink_id):
         else:
             abort(400, description='fill the required')
 
-
-
-
-      
-
         drink.update()
+
         return jsonify({
             'success': True,
             'drinks': [drink.long()]
@@ -142,7 +138,18 @@ def edit_drink(jwt, drink_id):
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks/<int:drink_id>', methods=['DELETE'])
+@requires_auth('delete:drinks')
+def delete_drink(payload, drink_id):
+    drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
 
+    if drink is None:
+        abort(404, description='drink id not Found')
+
+    return jsonify({
+        'success': True,
+        'delete': drink_id
+    }), 200
 
 # Error Handling
 '''
