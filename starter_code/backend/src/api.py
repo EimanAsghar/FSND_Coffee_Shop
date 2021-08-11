@@ -28,7 +28,15 @@ db_drop_and_create_all()
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks', methods=['GET'])
+def drinks(): 
 
+    all_drinks =  [drinks.short() for drinks in Drink.query.all()]
+
+    return jsonify({
+    'success': True,
+    'drinks': all_drinks
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -39,6 +47,16 @@ db_drop_and_create_all()
         or appropriate status code indicating reason for failure
 '''
 
+@app.route('/drinks-detail', methods=['GET'])
+@requires_auth('get:drinks-detail')
+def drinks_details(payload):  
+
+    drinks_details =  [drinks.long() for drinks in Drink.query.all()]
+
+    return jsonify({
+        'success': True,
+        'drinks': drinks_details
+        }), 200
 
 '''
 @TODO implement endpoint
@@ -87,7 +105,7 @@ def unprocessable(error):
     return jsonify({
         "success": False,
         "error": 422,
-        "message": "unprocessable"
+        "message": error.description
     }), 422
 
 
@@ -106,9 +124,23 @@ def unprocessable(error):
 @TODO implement error handler for 404
     error handler should conform to general task above
 '''
+@app.errorhandler(404)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": error.description
+    }), 404
 
 
 '''
 @TODO implement error handler for AuthError
     error handler should conform to general task above
 '''
+@app.errorhandler(AuthError)
+def authentication_error(error):
+    return jsonify({
+        'success': False,
+        'error': error.status_code,
+        'message': error.error.get('description')
+    }), error.status_code
