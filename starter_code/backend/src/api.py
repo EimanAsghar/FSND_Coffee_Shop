@@ -32,6 +32,9 @@ db_drop_and_create_all()
 def drinks(): 
 
     all_drinks =  [drinks.short() for drinks in Drink.query.all()]
+    
+    if all_drinks is None:
+        abort(404, description='Not Found')
 
     return jsonify({
     'success': True,
@@ -53,6 +56,9 @@ def drinks_details(payload):
 
     drinks_details =  [drinks.long() for drinks in Drink.query.all()]
 
+    if drinks_details is None:
+        abort(404, description='Not Found') 
+
     return jsonify({
         'success': True,
         'drinks': drinks_details
@@ -67,6 +73,23 @@ def drinks_details(payload):
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks', methods=['POST'])
+@requires_auth('post:drinks')
+def create_drinks(payload):
+
+    new_drink = Drink(
+        title=request.get_json().get('title'),
+        recipe=json.dumps([request.get_json().get('recipe')])
+        )
+
+
+    try:
+        new_drink.insert()
+
+    except:
+        abort(400, description='title must be not empty ')
+
+    return jsonify({'success': True, 'drinks': [new_drink.long()]}), 200
 
 
 '''
@@ -81,6 +104,33 @@ def drinks_details(payload):
         or appropriate status code indicating reason for failure
 '''
 
+@app.route('/drinks/<int:drink_id>', methods=['PATCH'])
+@requires_auth('patch:drinks')
+def edit_drink(jwt, drink_id):
+ 
+        drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+        body = request.get_json()
+
+        if drink is None:
+            abort(404, description='Not Found')
+
+        if 'title' in body:
+            drink.title = request.get_json().get('title')
+        elif 'recipe' in body:
+            drink.recipe = [json.dumps(request.get_json().get('recipe'))]
+        else:
+            abort(400, description='fill the required')
+
+
+
+
+      
+
+        drink.update()
+        return jsonify({
+            'success': True,
+            'drinks': [drink.long()]
+        }), 200
 
 '''
 @TODO implement endpoint
@@ -125,7 +175,7 @@ def unprocessable(error):
     error handler should conform to general task above
 '''
 @app.errorhandler(404)
-def unprocessable(error):
+def not_found(error):
     return jsonify({
         "success": False,
         "error": 404,
@@ -144,3 +194,11 @@ def authentication_error(error):
         'error': error.status_code,
         'message': error.error.get('description')
     }), error.status_code
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "success": False,
+        "error": 400,
+        "message": error.description
+    }), 400
