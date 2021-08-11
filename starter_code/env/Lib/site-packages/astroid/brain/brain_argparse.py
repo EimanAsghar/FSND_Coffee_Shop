@@ -1,8 +1,10 @@
-from astroid import MANAGER, arguments, nodes, inference_tip, UseInferenceDefault
+from astroid import arguments, inference_tip, nodes
+from astroid.exceptions import UseInferenceDefault
+from astroid.manager import AstroidManager
 
 
 def infer_namespace(node, context=None):
-    callsite = arguments.CallSite.from_call(node)
+    callsite = arguments.CallSite.from_call(node, context=context)
     if not callsite.keyword_arguments:
         # Cannot make sense of it.
         raise UseInferenceDefault()
@@ -28,6 +30,6 @@ def _looks_like_namespace(node):
     return False
 
 
-MANAGER.register_transform(
+AstroidManager().register_transform(
     nodes.Call, inference_tip(infer_namespace), _looks_like_namespace
 )
